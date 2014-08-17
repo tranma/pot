@@ -1,31 +1,8 @@
-{-# LANGUAGE TemplateHaskell, GeneralizedNewtypeDeriving, DeriveDataTypeable, DeriveGeneric #-}
-module Op (Delta, transform) where
+module Op (Delta(..), Op(..), transform, normalise) where
 
-import Control.Applicative
 import Data.Monoid
-import Test.QuickCheck
-import Data.Data
-import GHC.Generics
-
-prop_compose_lid :: Delta -> Bool
-prop_compose_lid d = mempty <> d == d
-
-prop_compose_rid :: Delta -> Bool
-prop_compose_rid d = d <> mempty == d
-
-prop_compose_assoc :: Delta -> Delta -> Delta -> Bool
-prop_compose_assoc d1 d2 d3 = (d1 <> d2) <> d3 == d1 <> (d2 <> d3)
-
-prop_transform :: Delta -> Delta -> Bool
-prop_transform d1 d2 = let (d2', d1') = transform (d1, d2)
-                       in  d1 <> d2' == d2 <> d1'
-
 
 newtype Delta = Delta { undelta :: [Op] } deriving Show
-
-instance Arbitrary Delta where
-  arbitrary = normalise <$> (arbitrary :: Gen [Op])
-  shrink (Delta xs) = map normalise (shrink xs)
 
 instance Eq Delta where
   Delta a == Delta b = eq a b
@@ -36,14 +13,7 @@ instance Eq Delta where
           eq (x:xs)     (y:ys)     = x == y && eq xs ys
 
 data Op = Delete Int | Retain Int | Insert String
-     deriving (Eq, Show, Data, Typeable, Generic)
-
-instance Arbitrary Op where
-  arbitrary = do
-    s <- listOf $ elements "abcdefg"
-    let i = length s
-    elements [Delete i, Retain i, Insert s]
-  shrink = genericShrink
+     deriving (Eq, Show)
 
 instance Monoid Delta where
   mempty = Delta []
@@ -122,6 +92,3 @@ normalise d = Delta . n' . foldr (.) id (replicate (length d) n'') . n $ d
         n'' (Delete x:Insert y:ops) = n'' (Insert y:Delete x:ops)
         n'' (x:ops) = x:(n'' ops)
         n'' []      = []
-
-return []
-main = $(quickCheckAll)
