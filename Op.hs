@@ -1,8 +1,10 @@
-module Op (Delta(..), Op(..), transform, normalise) where
+{-# LANGUAGE DeriveGeneric, GeneralizedNewtypeDeriving #-}
+module Op (Delta(..), TrackedDelta(..), Op(..), transform, normalise, update) where
 
+import Data.List
 import Data.Monoid
-
-newtype Delta = Delta { undelta :: [Op] } deriving Show
+import Data.Aeson
+import GHC.Generics
 
 instance Eq Delta where
   Delta a == Delta b = eq a b
@@ -13,7 +15,20 @@ instance Eq Delta where
           eq (x:xs)     (y:ys)     = x == y && eq xs ys
 
 data Op = Delete Int | Retain Int | Insert String
-     deriving (Eq, Show)
+     deriving (Eq, Show, Read, Generic)
+
+newtype Delta = Delta { undelta :: [Op] }
+     deriving (Read, Show, Generic)
+
+data TrackedDelta =
+  TrackedDelta { cursor :: Int
+               , delta  :: Delta }
+  deriving (Read, Show)
+
+instance FromJSON Op
+instance ToJSON Op
+instance FromJSON Delta
+instance ToJSON Delta
 
 instance Monoid Delta where
   mempty = Delta []
@@ -92,3 +107,6 @@ normalise d = Delta . n' . foldr (.) id (replicate (length d) n'') . n $ d
         n'' (Delete x:Insert y:ops) = n'' (Insert y:Delete x:ops)
         n'' (x:ops) = x:(n'' ops)
         n'' []      = []
+
+update :: Delta -> Int -> [Delta] -> (Delta, [Delta])
+update op n history = mapAccumL (curry transform) op $ drop n history

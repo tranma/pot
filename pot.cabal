@@ -5,13 +5,36 @@ maintainer:          tran@defma.in
 build-type:          Simple
 cabal-version:       >=1.10
 
-executable pot
-  main-is:             Client.hs
-  other-modules:       Op,
-                       Sync       
+executable pot-server
+  main-is:             Server.hs
+  other-modules:       Op
 
   build-depends:       base >=4.7 && <4.8,
+                       containers,
+                       mtl,
+                       stm,
+                       aeson,
+                       bytestring,
                        pipes,
-                       threepenny-gui
+                       pipes-concurrency,
+                       network
+
+  default-language:    Haskell2010
+
+executable pot-client
+  main-is:             Client.hs
+  other-modules:       Op
+
+  build-depends:       base >=4.7 && <4.8,
+                       containers,
+                       mtl,
+                       mvc,
+                       aeson,
+                       lens,
+                       bytestring,
+                       pipes,
+                       pipes-aeson,
+                       network,
+                       websockets 
 
   default-language:    Haskell2010
