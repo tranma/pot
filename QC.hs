@@ -1,17 +1,12 @@
 {-# LANGUAGE TemplateHaskell, GeneralizedNewtypeDeriving, DeriveDataTypeable, DeriveGeneric, StandaloneDeriving #-}
-module QC where
-
 import Control.Applicative
 import Data.Monoid
 import Test.QuickCheck
 import Data.Data
-import GHC.Generics
 
 import Op
 
-deriving instance Data Op
 deriving instance Typeable Op
-deriving instance Generic Op
 
 instance Arbitrary Delta where
   arbitrary = normalise <$> (arbitrary :: Gen [Op])
