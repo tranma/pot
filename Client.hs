@@ -22,12 +22,11 @@ makePrisms ''To
 
 main :: IO ()
 main = do
-  x:y:_ <- getArgs
+  x:y:a:b:_ <- getArgs
   runServer x (read y) $ \pconn -> do
     conn      <- acceptRequest pconn
-    sock      <- listenOn $ PortNumber 9999
-    (h, _, _) <- accept sock
-    void $ runMVC (0, []) (asPipe model) (client h conn)
+    tcph      <- connectTo a (PortNumber $ fromInteger $ read b)
+    void $ runMVC (0, []) (asPipe model) (client tcph conn)
 
 client :: Handle -> Connection -> Managed (View To, Controller From)
 client h c = (,) <$> view h c <*> controller h c

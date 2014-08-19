@@ -12,6 +12,7 @@ import           Pipes
 import           Pipes.Concurrent
 import qualified Pipes.Prelude as P
 import           System.IO
+import           System.Environment
 
 import           Op
 
@@ -95,7 +96,8 @@ snapshotter s = do
 
 main :: IO ()
 main = do
-  sock                        <- listenOn (PortNumber 9999)
+  x                           <- getArgs
+  sock                        <- listenOn (PortNumber $ fromInteger $ read x)
   (readerout, readerin)       <- spawn Unbounded -- server's mailbox for clients to use
   (broadcastout, broadcastin) <- spawn Unbounded -- broadcaster's mailbox for server and listener to use
   (snapshotout, snapshotin)   <- spawn Unbounded -- snapshotter's mailbox for broadcaster to use
