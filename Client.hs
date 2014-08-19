@@ -12,6 +12,7 @@ import qualified Pipes.Prelude         as P
 import           System.IO
 import           System.Environment
 import           Op
+import Debug.Trace
 
 data From = FServer TrackedDelta | FUser Delta
      deriving (Eq, Show)
@@ -32,7 +33,7 @@ client :: Handle -> Connection -> Managed (View To, Controller From)
 client h c = (,) <$> view h c <*> controller h c
 
 model :: Pipe From To (State (Int, [Delta])) ()
-model = await >>= \x -> traceShow x $ case x of
+model = forever $ await >>= \x -> traceShow x $ case x of
   FServer (TrackedDelta n d) -> do
     (m, hist)       <- get
     let (d', hist') =  update d n hist
