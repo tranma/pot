@@ -32,7 +32,7 @@ client :: Handle -> Connection -> Managed (View To, Controller From)
 client h c = (,) <$> view h c <*> controller h c
 
 model :: Pipe From To (State (Int, [Delta])) ()
-model = await >>= \x -> case x of
+model = await >>= \x -> traceShow x $ case x of
   FServer (TrackedDelta n d) -> do
     (m, hist)       <- get
     let (d', hist') =  update d n hist
@@ -47,10 +47,10 @@ controllerServer :: Handle -> Managed (Controller TrackedDelta)
 controllerServer h = M.producer Single (P.fromHandle h >-> P.read)
 
 fromConnection :: (MonadIO m, WebSocketsData a) => Connection -> Producer a m ()
-fromConnection c = liftIO (receiveData c) >>= yield
+fromConnection c = forever $ liftIO (receiveData c) >>= yield
 
 toConnection :: (MonadIO m, WebSocketsData a) => Connection -> Consumer a m ()
-toConnection c = await >>= liftIO . sendTextData c
+toConnection c = forever $ await >>= liftIO . sendTextData c
 
 controllerUser :: Connection -> Managed (Controller Delta)
 controllerUser c = M.producer Single $ void $ L.view P.decoded $ fromConnection c

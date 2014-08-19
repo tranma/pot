@@ -1,7 +1,7 @@
 window.onload = function() {
   var text = document.getElementById("editor");
   var from, to;
-  var ws = new WebSocket("ws://localhost:9999");
+  var ws = new WebSocket("ws://127.0.0.1:9999");
 
   var editor = CodeMirror.fromTextArea(text, {
     lineNumbers: true,
@@ -25,7 +25,6 @@ window.onload = function() {
       if (to > from)
         ops.push({"tag":"Delete","contents":to-from});
       var delta = {"undelta":ops};
-      console.log(delta);
       ws.send(JSON.stringify(delta));
     }
   });
