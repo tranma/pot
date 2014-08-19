@@ -96,7 +96,7 @@ snapshotter s = do
 
 main :: IO ()
 main = do
-  x                           <- getArgs
+  x:_                         <- getArgs
   sock                        <- listenOn (PortNumber $ fromInteger $ read x)
   (readerout, readerin)       <- spawn Unbounded -- server's mailbox for clients to use
   (broadcastout, broadcastin) <- spawn Unbounded -- broadcaster's mailbox for server and listener to use
