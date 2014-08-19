@@ -22,7 +22,7 @@ executable pot-server
   default-language:    Haskell2010
 
 executable pot-client
-  main-is:             Client.hs
+  main-is:             ClientWS.hs
   other-modules:       Op
 
   build-depends:       base >=4.7 && <4.8,
