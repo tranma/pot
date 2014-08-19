@@ -23,7 +23,7 @@ newtype Delta = Delta { undelta :: [Op] }
 data TrackedDelta =
   TrackedDelta { cursor :: Int
                , delta  :: Delta }
-  deriving (Read, Show)
+  deriving (Eq, Read, Show)
 
 instance FromJSON Op
 instance ToJSON Op
@@ -94,16 +94,16 @@ transform (Delta a, Delta b) = let (a', b') = unzip $ t a b
 
 normalise :: [Op] -> Delta
 normalise d = Delta . n' . foldr (.) id (replicate (length d) n'') . n $ d
-  where n  (Delete 0:ops)  = n ops
-        n  (Retain 0:ops)  = n ops
-        n  (Insert "":ops) = n ops
-        n  (x:ops) = x:(n ops)
-        n  []      = []
-        n' (Delete x:Delete y:ops) = n' (Delete (x+y) :ops)
-        n' (Retain x:Retain y:ops) = n' (Retain (x+y) :ops)
-        n' (Insert x:Insert y:ops) = n' (Insert (x++y):ops)
-        n' (x:ops) = x:(n' ops)
-        n' []      = []
+  where n   (Delete 0:ops)  = n ops
+        n   (Retain 0:ops)  = n ops
+        n   (Insert "":ops) = n ops
+        n   (x:ops) = x:(n ops)
+        n   []      = []
+        n'  (Delete x:Delete y:ops) = n' (Delete (x+y) :ops)
+        n'  (Retain x:Retain y:ops) = n' (Retain (x+y) :ops)
+        n'  (Insert x:Insert y:ops) = n' (Insert (x++y):ops)
+        n'  (x:ops) = x:(n' ops)
+        n'  []      = []
         n'' (Delete x:Insert y:ops) = n'' (Insert y:Delete x:ops)
         n'' (x:ops) = x:(n'' ops)
         n'' []      = []
