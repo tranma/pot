@@ -70,7 +70,7 @@ listen readerout h = do
     return $ Client cid writerout
 
 listener :: Output (Signed TrackedDelta) -> Socket -> Producer Client (StateT ClientID IO) ()
-listener readerout sock = do
+listener readerout sock = forever $ do
   (h,  _, _) <- liftIO $ accept sock
   yield =<< (lift $ listen readerout h)
 
