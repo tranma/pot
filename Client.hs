@@ -10,6 +10,7 @@ import           Network.WebSockets
 import qualified Pipes.Aeson.Unchecked as P
 import qualified Pipes.Prelude         as P
 import           System.IO
+import           System.Environment
 import           Op
 
 data From = FServer TrackedDelta | FUser Delta
@@ -20,11 +21,13 @@ data To   = TServer TrackedDelta | TUser Delta
 makePrisms ''To
 
 main :: IO ()
-main = runServer "127.0.0.1" 30000 $ \pconn -> do
-  conn      <- acceptRequest pconn
-  sock      <- listenOn $ PortNumber 9999
-  (h, _, _) <- accept sock
-  void $ runMVC (0, []) (asPipe model) (client h conn)
+main = do
+  x:y:_ <- getArgs
+  runServer x (read y) $ \pconn -> do
+    conn      <- acceptRequest pconn
+    sock      <- listenOn $ PortNumber 9999
+    (h, _, _) <- accept sock
+    void $ runMVC (0, []) (asPipe model) (client h conn)
 
 client :: Handle -> Connection -> Managed (View To, Controller From)
 client h c = (,) <$> view h c <*> controller h c
