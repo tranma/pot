@@ -5,6 +5,7 @@ import           Control.Monad
 import           Control.Monad.State
 import qualified Data.Map      as M
 import           Data.Map (Map)
+import           Data.Maybe
 import           Data.Monoid
 import           Data.Typeable
 import           Network
@@ -13,13 +14,13 @@ import           Pipes.Concurrent
 import qualified Pipes.Prelude as P
 import           System.IO
 import           System.Environment
-
 import           Op
+import Debug.Trace
 
 data Signed a =
   Signed { sign :: ClientID
          , thing :: a }
-  deriving Functor
+  deriving (Show, Functor)
 
 type ServerST = Map ClientID [Delta]
 type Server m = Pipe (Signed TrackedDelta)  -- ^ tracked delta     (from all client readers)
@@ -42,11 +43,11 @@ data Disconnect = Disconnect
   deriving (Typeable, Show)
 instance Exception Disconnect
 
-server :: Monad m => Server m
-server = do
+server :: MonadIO m => Server m
+server = forever $ do
   (Signed s (TrackedDelta c d)) <- await
   m <- lift $ get
-  let Just hist = M.lookup s m
+  let hist = fromMaybe [] $ M.lookup s m
   let (d', hist') = update d c hist
   lift $ modify (M.insert s hist')
   yield (Signed s d')
@@ -55,7 +56,7 @@ reader :: MonadIO m => ClientID -> Handle -> Producer (Signed TrackedDelta) m ()
 reader cid h = P.fromHandle h >-> P.read >-> P.map (Signed cid)
 
 writer :: MonadIO m => Handle -> Consumer TrackedDelta m ()
-writer h = P.map (show . delta) >-> P.toHandle h
+writer h = P.map ((\x -> traceShow x x) . show) >-> P.toHandle h
 
 listen :: Output (Signed TrackedDelta) -> Handle -> StateT ClientID IO Client
 listen readerout h = do
@@ -71,18 +72,19 @@ listen readerout h = do
 
 listener :: Output (Signed TrackedDelta) -> Socket -> Producer Client (StateT ClientID IO) ()
 listener readerout sock = forever $ do
-  (h,  _, _) <- liftIO $ accept sock
-  yield =<< (lift $ listen readerout h)
+  (hd,  _, _) <- liftIO $ accept sock
+  liftIO $ hSetBuffering hd NoBuffering
+  yield =<< (lift $ listen readerout hd)
 
 broadcaster :: Output Delta -> Consumer Broadcast (StateT BroadcastST IO) ()
-broadcaster snapshotout = await >>= \x -> case x of
+broadcaster snapshotout = forever $ await >>= \x -> case x of
   FromListener (Client s writerout) -> lift (modify (M.insert s (0, writerout)))
   FromServer   sd                   -> void $ lift $ do
     lift $ atomically $ send snapshotout (thing sd)
     m  <- get
     m' <- lift $ M.traverseWithKey (sendEach sd) m
     put m'
-  where sendEach sd cid (x, mailbox)
+  where sendEach sd cid (x, mailbox) | traceShow (cid, sd) False = undefined
           | sign sd == cid = return (x + 1, mailbox)
           | otherwise      = do atomically $ send mailbox
                                            $ TrackedDelta x $ thing sd
@@ -90,7 +92,7 @@ broadcaster snapshotout = await >>= \x -> case x of
 type Snapshot = TVar Delta
 
 snapshotter :: Snapshot -> Consumer Delta IO ()
-snapshotter s = do
+snapshotter s = forever $ do
   x    <- await
   lift $  atomically $ modifyTVar s (<>x)
 

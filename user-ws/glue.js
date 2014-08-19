@@ -32,13 +32,16 @@ window.onload = function() {
   ws.onmessage = function(event) {
     var msg = JSON.parse(event.data);
     var index = 0;
+
     msg.undelta.map(function(op) {
       switch(op.tag) {
         case "Retain":
           index += op.contents;
           break;
 	case "Insert":
-          editor.doc.replaceRange(op.contents, editor.doc.posFromIndex(index), "server");
+	  var p = editor.doc.posFromIndex(index);
+          console.log(op.contents, p, p);
+          editor.doc.replaceRange(op.contents, p, p, "server");
 	  index += op.contents.length;
 	  break;
 	case "Delete":
