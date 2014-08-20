@@ -1,7 +1,7 @@
 window.onload = function() {
   var text = document.getElementById("editor");
   var from, to;
-  var ws = new WebSocket("ws://127.0.0.1:9999");
+  var ws = new WebSocket("ws://127.0.0.1:" + window.location.search.replace("?",""));
 
   var editor = CodeMirror.fromTextArea(text, {
     lineNumbers: true,
